@@ -1,0 +1,30 @@
+# secrets and env
+.env
+.env.*
+*.key
+*.pem
+credentials*.json
+
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# dbt
+dbt_llm_quality/target/
+dbt_llm_quality/dbt_packages/
+dbt_llm_quality/logs/
+*.duckdb
+*.duckdb.wal
+
+# logs
+logs/
+*.log
+
+# data (raw data stays local, not versioned)
+data/raw/*
+!data/raw/.gitkeep
+
+# os
+.DS_Store
