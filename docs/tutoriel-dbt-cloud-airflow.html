@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tutoriel dbt — Core, Cloud et intégration Airflow</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f6f7f9;
+    --text: #1c2127;
+    --text-muted: #565f6b;
+    --border: #e1e4e8;
+    --accent: #1a5cad;
+    --accent-soft: #e8f0fb;
+    --card-bg: #ffffff;
+    --code-bg: #f2f3f5;
+    --code-border: #dde1e6;
+    --ok: #1a7f4e;
+    --warn: #8a5a00;
+    --bad: #a3162e;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --bg-alt: #1b1f26;
+      --text: #e6e9ed;
+      --text-muted: #9aa4b2;
+      --border: #2b313a;
+      --accent: #6ba6f0;
+      --accent-soft: #1c2b40;
+      --card-bg: #1b1f26;
+      --code-bg: #101317;
+      --code-border: #2b313a;
+      --ok: #4fd18a;
+      --warn: #e0b04d;
+      --bad: #ef6b7e;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .layout { display: flex; max-width: 1200px; margin: 0 auto; }
+  nav.toc {
+    width: 270px; flex-shrink: 0; position: sticky; top: 0; align-self: flex-start;
+    max-height: 100vh; overflow-y: auto; padding: 24px 16px;
+    border-right: 1px solid var(--border); font-size: 13.5px;
+  }
+  nav.toc h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 10px 4px; }
+  nav.toc a { display: block; color: var(--text); text-decoration: none; padding: 5px 8px; border-radius: 6px; }
+  nav.toc a:hover { background: var(--bg-alt); }
+  nav.toc .lvl2 { padding-left: 18px; color: var(--text-muted); font-size: 12.5px; }
+  nav.toc .gap { margin-top: 12px; }
+  main { flex: 1; min-width: 0; padding: 40px 48px 100px; }
+  header.title-block { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  header.title-block h1 { font-size: 27px; margin: 0 0 6px; }
+  header.title-block .subtitle { color: var(--text-muted); font-size: 16px; }
+  h2 { font-size: 21px; margin-top: 54px; padding-top: 10px; border-top: 1px solid var(--border); }
+  h3 { font-size: 17px; margin-top: 30px; color: var(--accent); }
+  p, ul, ol { max-width: 800px; }
+  li { margin-bottom: 6px; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  code { background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 4px; padding: 1px 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0; max-width: 800px; }
+  pre code { background: none; border: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 16px 0; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--bg-alt); }
+  .callout { max-width: 800px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 6px; padding: 12px 16px; margin: 16px 0; }
+  .callout strong { color: var(--accent); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin: 14px 0; box-shadow: var(--shadow); max-width: 800px; }
+  .card h4 { margin: 0 0 8px; font-size: 14.5px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding: 2px 8px; border-radius: 10px; margin-bottom: 8px; }
+  .tag.ok { background: var(--accent-soft); color: var(--ok); }
+  .tag.warn { background: var(--accent-soft); color: var(--warn); }
+  .tag.bad { background: var(--accent-soft); color: var(--bad); }
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; }
+  @media (max-width: 900px) { nav.toc { display: none; } main { padding: 24px 20px 80px; } }
+  @media print { nav.toc { display: none; } .layout { display: block; } main { padding: 0; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+  <h2>Sommaire</h2>
+  <a href="#intro">Comment s'articulent dbt Core, dbt Cloud, Airflow</a>
+
+  <div class="gap"></div>
+  <a href="#core">1. dbt Core</a>
+  <a class="lvl2" href="#core-install">1.1 Installation & connexion</a>
+  <a class="lvl2" href="#core-structure">1.2 Structure d'un projet</a>
+  <a class="lvl2" href="#core-commands">1.3 Commandes essentielles</a>
+  <a class="lvl2" href="#core-models">1.4 Models & matérialisations</a>
+  <a class="lvl2" href="#core-tests">1.5 Tests</a>
+  <a class="lvl2" href="#core-docs">1.6 Documentation</a>
+  <a class="lvl2" href="#core-macros">1.7 Macros & Jinja</a>
+  <a class="lvl2" href="#core-packages">1.8 Packages</a>
+  <a class="lvl2" href="#core-snapshots">1.9 Snapshots</a>
+  <a class="lvl2" href="#core-seeds">1.10 Seeds</a>
+  <a class="lvl2" href="#core-sources">1.11 Sources & freshness</a>
+  <a class="lvl2" href="#core-env">1.12 Environnements & targets</a>
+  <a class="lvl2" href="#core-incremental">1.13 Modèles incrémentaux</a>
+  <a class="lvl2" href="#core-select">1.14 Sélecteurs de graphe</a>
+
+  <div class="gap"></div>
+  <a href="#cloud">2. dbt Cloud</a>
+  <a class="lvl2" href="#cloud-quoi">2.1 Qu'est-ce que c'est</a>
+  <a class="lvl2" href="#cloud-setup">2.2 Créer un projet</a>
+  <a class="lvl2" href="#cloud-ide">2.3 IDE & Git</a>
+  <a class="lvl2" href="#cloud-jobs">2.4 Jobs & environnements</a>
+  <a class="lvl2" href="#cloud-vs-core">2.5 Cloud vs Core : que choisir</a>
+
+  <div class="gap"></div>
+  <a href="#airflow">3. dbt + Airflow</a>
+  <a class="lvl2" href="#airflow-why">3.1 Pourquoi orchestrer avec Airflow</a>
+  <a class="lvl2" href="#airflow-bash">3.2 Option A — BashOperator</a>
+  <a class="lvl2" href="#airflow-cosmos">3.3 Option B — Cosmos</a>
+  <a class="lvl2" href="#airflow-cloud">3.4 Option C — dbt Cloud depuis Airflow</a>
+  <a class="lvl2" href="#airflow-compare">3.5 Comparatif</a>
+  <a class="lvl2" href="#airflow-practices">3.6 Bonnes pratiques</a>
+
+  <div class="gap"></div>
+  <a href="#cheatsheet">4. Aide-mémoire des commandes</a>
+  <a href="#ressources">5. Ressources officielles</a>
+</nav>
+
+<main>
+<header class="title-block">
+  <h1>Tutoriel dbt — Core, Cloud et intégration Airflow</h1>
+  <div class="subtitle">Référence pratique : ce que fait chaque outil, comment ils s'articulent, et les commandes à connaître.</div>
+</header>
+
+<section id="intro">
+<h2>Comment s'articulent dbt Core, dbt Cloud et Airflow</h2>
+<p>Ces trois outils ne sont pas en concurrence directe, ils répondent à des questions différentes :</p>
+<table>
+<tr><th>Outil</th><th>Répond à la question</th><th>Ce qu'il n'est pas</th></tr>
+<tr><td><strong>dbt Core</strong></td><td>Comment transformer mes données déjà chargées, avec des tests et de la doc, en écrivant du SQL ?</td><td>Un outil d'extraction de données, ni un scheduler</td></tr>
+<tr><td><strong>dbt Cloud</strong></td><td>Comment développer, planifier et héberger tout ça sans gérer d'infrastructure moi-même ?</td><td>Un remplaçant de dbt Core — c'est dbt Core, packagé avec un IDE web, un scheduler et un hébergement</td></tr>
+<tr><td><strong>Airflow</strong></td><td>Comment orchestrer <em>plusieurs</em> pipelines (extraction, dbt, entraînement ML, envoi de rapport…) dans le bon ordre, avec retries et alerting ?</td><td>Un outil de transformation SQL — Airflow ne sait pas ce qu'est un modèle dbt, il sait juste lancer des commandes/tâches</td></tr>
+</table>
+<div class="callout">
+<strong>Repère simple :</strong> dbt (Core ou Cloud) répond à « comment transformer ». Airflow répond à « quand et dans quel ordre, avec quoi d'autre ». On utilise souvent Airflow <em>pour déclencher</em> dbt, jamais l'inverse.
+</div>
+</section>
+
+<!-- ============ 1. dbt CORE ============ -->
+<h2 id="core">1. dbt Core</h2>
+<p>dbt Core est l'outil en ligne de commande, gratuit et open source. Tout ce qui suit fonctionne en local, sans compte ni service externe (à part ton entrepôt de données).</p>
+
+<h3 id="core-install">1.1 Installation & connexion</h3>
+<pre><code>python -m venv .venv
+source .venv/bin/activate
+pip install dbt-core dbt-duckdb   # l'adaptateur dépend de ton entrepôt : dbt-postgres, dbt-snowflake, dbt-bigquery...
+dbt --version</code></pre>
+<p>La connexion à l'entrepôt se configure dans <code>~/.dbt/profiles.yml</code> (hors du projet, pour ne jamais versionner de secrets) :</p>
+<pre><code># ~/.dbt/profiles.yml
+mon_projet:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: warehouse.duckdb
+      threads: 4</code></pre>
+
+<h3 id="core-structure">1.2 Structure d'un projet</h3>
+<pre><code>mon_projet/
+├── dbt_project.yml       # config du projet (nom, matérialisation par défaut, dossiers)
+├── models/
+│   ├── staging/          # nettoyage 1:1 des sources
+│   ├── intermediate/     # jointures, agrégations partielles
+│   └── marts/            # tables finales (faits/dimensions)
+├── tests/                # tests SQL "singuliers" (custom)
+├── macros/               # fonctions Jinja réutilisables
+├── seeds/                # petits CSV chargés tels quels
+├── snapshots/            # historisation de type SCD2
+└── analyses/             # requêtes ad-hoc, non matérialisées</code></pre>
+
+<h3 id="core-commands">1.3 Commandes essentielles</h3>
+<table>
+<tr><th>Commande</th><th>À quoi elle sert</th></tr>
+<tr><td><code>dbt debug</code></td><td>Vérifie la config et la connexion à l'entrepôt</td></tr>
+<tr><td><code>dbt deps</code></td><td>Installe les packages déclarés dans <code>packages.yml</code></td></tr>
+<tr><td><code>dbt seed</code></td><td>Charge les CSV du dossier <code>seeds/</code></td></tr>
+<tr><td><code>dbt run</code></td><td>Construit les modèles (dans l'ordre du DAG)</td></tr>
+<tr><td><code>dbt test</code></td><td>Exécute tous les tests déclarés</td></tr>
+<tr><td><code>dbt build</code></td><td>Fait <code>seed</code> + <code>run</code> + <code>test</code> + <code>snapshot</code>, dans l'ordre du DAG, modèle par modèle (recommandé au quotidien)</td></tr>
+<tr><td><code>dbt compile</code></td><td>Traduit le Jinja/SQL en SQL brut, sans l'exécuter</td></tr>
+<tr><td><code>dbt docs generate</code></td><td>Génère la documentation (catalogue + manifest)</td></tr>
+<tr><td><code>dbt docs serve</code></td><td>Sert la doc dans un navigateur en local</td></tr>
+<tr><td><code>dbt ls</code></td><td>Liste les ressources du projet (modèles, tests…) sans les exécuter</td></tr>
+<tr><td><code>dbt clean</code></td><td>Supprime <code>target/</code> et les packages installés</td></tr>
+</table>
+
+<h3 id="core-models">1.4 Models & matérialisations</h3>
+<p>Un modèle est un fichier <code>.sql</code> contenant un <code>SELECT</code>. La matérialisation définit comment dbt le construit dans l'entrepôt :</p>
+<table>
+<tr><th>Matérialisation</th><th>Comportement</th><th>Quand l'utiliser</th></tr>
+<tr><td><code>view</code></td><td>Recalculée à chaque lecture</td><td>Par défaut, modèles légers ou peu consultés (souvent staging)</td></tr>
+<tr><td><code>table</code></td><td>Stockée physiquement, reconstruite entièrement à chaque <code>run</code></td><td>Modèles lourds à calculer, consultés souvent (souvent marts)</td></tr>
+<tr><td><code>incremental</code></td><td>Ajoute seulement les nouvelles lignes au lieu de tout recalculer</td><td>Grosses tables qui grossissent dans le temps (logs, transactions)</td></tr>
+<tr><td><code>ephemeral</code></td><td>N'existe pas dans l'entrepôt, injectée comme sous-requête (CTE) dans les modèles qui la référencent</td><td>Étape de nettoyage intermédiaire très légère, jamais interrogée seule</td></tr>
+</table>
+<pre><code>-- déclarer la matérialisation en haut du fichier
+{{ config(materialized='table') }}
+
+select ...
+from {{ ref('stg_kiva_loans') }}</code></pre>
+
+<h3 id="core-tests">1.5 Tests</h3>
+<p><strong>Tests génériques</strong> (déclaratifs, en YAML) :</p>
+<pre><code>models:
+  - name: fact_loans
+    columns:
+      - name: loan_id
+        tests: [not_null, unique]
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['funded', 'in_repayment', 'paid']</code></pre>
+<p><strong>Tests singuliers</strong> (une requête SQL qui doit renvoyer 0 lignes pour passer), dans <code>tests/</code> :</p>
+<pre><code>-- tests/assert_no_negative_amounts.sql
+select * from {{ ref('fact_loans') }}
+where amount &lt; 0</code></pre>
+<p>Packages utiles : <code>dbt-utils</code> (tests génériques additionnels), <code>dbt_expectations</code> (tests façon Great Expectations).</p>
+
+<h3 id="core-docs">1.6 Documentation</h3>
+<p>Les descriptions se déclarent dans les fichiers <code>.yml</code> à côté des modèles (<code>description:</code> sur un modèle ou une colonne). <code>dbt docs generate</code> construit un site statique consultable avec <code>dbt docs serve</code>, incluant le DAG interactif du projet.</p>
+
+<h3 id="core-macros">1.7 Macros & Jinja</h3>
+<p>dbt utilise Jinja pour du SQL dynamique : boucles, conditions, réutilisation de logique.</p>
+<pre><code>-- macros/cents_to_amount.sql
+{% macro cents_to_amount(column_name) %}
+    ({{ column_name }} / 100.0)
+{% endmacro %}
+
+-- utilisation dans un modèle
+select {{ cents_to_amount('amount_cents') }} as amount
+from {{ source('raw', 'loans') }}</code></pre>
+
+<h3 id="core-packages">1.8 Packages</h3>
+<pre><code># packages.yml
+packages:
+  - package: dbt-labs/dbt_utils
+    version: [">=1.0.0", "&lt;2.0.0"]</code></pre>
+<pre><code>dbt deps   # à relancer après chaque modification de packages.yml</code></pre>
+
+<h3 id="core-snapshots">1.9 Snapshots</h3>
+<p>Un snapshot capture l'état d'une table à chaque exécution pour reconstituer son historique (type SCD2 — utile quand la source ne garde pas l'historique elle-même, ex. le statut d'un prêt qui change dans le temps).</p>
+
+<h3 id="core-seeds">1.10 Seeds</h3>
+<p>Les seeds sont des petits fichiers CSV versionnés dans le projet et chargés tels quels avec <code>dbt seed</code> (utile pour des référentiels fixes : liste de pays, mapping de codes).</p>
+
+<h3 id="core-sources">1.11 Sources & freshness</h3>
+<pre><code># models/staging/_sources.yml
+sources:
+  - name: raw
+    tables:
+      - name: kiva_loans
+        loaded_at_field: extracted_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}</code></pre>
+<p><code>dbt source freshness</code> vérifie que les données brutes ne sont pas périmées avant de lancer les transformations.</p>
+
+<h3 id="core-env">1.12 Environnements & targets</h3>
+<p>Un même <code>profiles.yml</code> peut définir plusieurs cibles (<code>dev</code>, <code>prod</code>), chacune pointant vers un schéma ou une base différente. On choisit la cible avec <code>dbt run --target prod</code>.</p>
+
+<h3 id="core-incremental">1.13 Modèles incrémentaux</h3>
+<pre><code>{{ config(materialized='incremental', unique_key='loan_id') }}
+
+select * from {{ source('raw', 'kiva_loans') }}
+
+{% if is_incremental() %}
+  where extracted_at > (select max(extracted_at) from {{ this }})
+{% endif %}</code></pre>
+
+<h3 id="core-select">1.14 Sélecteurs de graphe</h3>
+<table>
+<tr><th>Commande</th><th>Effet</th></tr>
+<tr><td><code>dbt run --select stg_kiva_loans</code></td><td>Un seul modèle</td></tr>
+<tr><td><code>dbt run --select stg_kiva_loans+</code></td><td>Ce modèle et tout ce qui en dépend en aval</td></tr>
+<tr><td><code>dbt run --select +fact_loans</code></td><td>Ce modèle et tout ce dont il dépend en amont</td></tr>
+<tr><td><code>dbt run --select tag:marts</code></td><td>Tous les modèles tagués <code>marts</code></td></tr>
+<tr><td><code>dbt run --select state:modified+</code></td><td>Les modèles modifiés depuis le dernier run (Slim CI) et leur aval</td></tr>
+</table>
+
+<!-- ============ 2. dbt CLOUD ============ -->
+<h2 id="cloud">2. dbt Cloud</h2>
+
+<h3 id="cloud-quoi">2.1 Qu'est-ce que c'est</h3>
+<p>dbt Cloud est un service managé développé par dbt Labs : il fait tourner dbt Core en arrière-plan, mais t'évite de gérer l'infrastructure. En plus des commandes dbt classiques, il ajoute :</p>
+<ul>
+  <li><strong>Un IDE web</strong> pour écrire et tester tes modèles sans rien installer en local.</li>
+  <li><strong>Un scheduler intégré</strong> (jobs planifiés) — pas besoin d'Airflow ou de cron pour les cas simples.</li>
+  <li><strong>Un hébergement automatique de la documentation</strong> générée par <code>dbt docs generate</code>.</li>
+  <li><strong>Une intégration Git native</strong> (branches, pull requests, jobs CI déclenchés sur PR).</li>
+  <li>Une offre gratuite (<em>Developer plan</em>, un seul développeur) suffisante pour apprendre.</li>
+</ul>
+<div class="callout"><strong>Important :</strong> dbt Cloud n'est pas un langage différent — le SQL et le YAML que tu écris sont strictement les mêmes qu'en dbt Core. Ce que tu apprends en Core (week-ends 3 et 4 du guide projet) est directement réutilisable en Cloud.</div>
+
+<h3 id="cloud-setup">2.2 Créer un projet</h3>
+<ol>
+  <li>Créer un compte sur <a href="https://www.getdbt.com" target="_blank">getdbt.com</a> (offre Developer gratuite).</li>
+  <li>Connecter un entrepôt de données (BigQuery, Snowflake, Postgres… — DuckDB local n'est pas supporté par dbt Cloud, il faut un entrepôt accessible sur le réseau).</li>
+  <li>Connecter ton dépôt GitHub (dbt Cloud clone et gère les branches pour toi).</li>
+  <li>Créer un environnement de développement, puis un environnement de déploiement (production).</li>
+</ol>
+
+<h3 id="cloud-ide">2.3 IDE & Git</h3>
+<p>L'IDE web permet d'éditer les modèles, de lancer <code>dbt run</code>/<code>dbt test</code> sur une branche de développement, de committer et d'ouvrir une pull request directement depuis l'interface. Le flux de travail Git (branche, commit, PR, review, merge) reste le même qu'en local.</p>
+
+<h3 id="cloud-jobs">2.4 Jobs & environnements</h3>
+<p>Un <strong>job</strong> dbt Cloud définit une suite de commandes (ex. <code>dbt build</code>) à exécuter, sur un environnement donné, selon un déclencheur :</p>
+<table>
+<tr><th>Type de déclencheur</th><th>Usage typique</th></tr>
+<tr><td>Planifié (cron)</td><td>Rafraîchir les données de production chaque nuit</td></tr>
+<tr><td>Sur webhook / API</td><td>Déclenché par un outil externe (ex. Airflow, une extraction terminée)</td></tr>
+<tr><td>CI sur pull request</td><td>Construit uniquement les modèles modifiés (Slim CI) avant de merger</td></tr>
+</table>
+
+<h3 id="cloud-vs-core">2.5 Cloud vs Core : que choisir</h3>
+<table>
+<tr><th>Critère</th><th>dbt Core</th><th>dbt Cloud</th></tr>
+<tr><td>Coût</td><td>Gratuit</td><td>Gratuit pour 1 développeur, payant en équipe</td></tr>
+<tr><td>Scheduler</td><td>À gérer soi-même (cron, Airflow…)</td><td>Intégré</td></tr>
+<tr><td>Hébergement de la doc</td><td>À héberger soi-même</td><td>Automatique</td></tr>
+<tr><td>Entrepôt local (DuckDB)</td><td>Supporté</td><td>Non supporté</td></tr>
+<tr><td>Apprentissage en solo</td><td>Idéal — tu vois tout ce qui se passe</td><td>Pratique une fois les bases acquises</td></tr>
+</table>
+<p><strong>Pour ce projet :</strong> reste sur dbt Core en local pendant tout le guide d'apprentissage (tu contrôles chaque étape). Tu pourras créer un compte dbt Cloud gratuit ensuite, juste pour voir l'IDE et les jobs tourner sur le même projet, sans réécrire de code.</p>
+
+<!-- ============ 3. dbt + AIRFLOW ============ -->
+<h2 id="airflow">3. dbt + Airflow</h2>
+
+<h3 id="airflow-why">3.1 Pourquoi orchestrer dbt avec Airflow</h3>
+<p>dbt Core seul n'a pas de scheduler : il faut quelque chose d'externe (cron, Airflow, dbt Cloud) pour le déclencher régulièrement. Airflow devient pertinent quand dbt n'est qu'une étape parmi d'autres (après une extraction, avant l'entraînement d'un modèle ML, avant l'envoi d'un rapport) et que tu as besoin de dépendances entre ces étapes, de retries, d'alerting et d'un historique d'exécution.</p>
+
+<h3 id="airflow-bash">3.2 Option A — BashOperator</h3>
+<div class="card">
+<span class="tag ok">Le plus simple</span>
+<p>Une ou deux tâches Airflow qui lancent directement les commandes dbt en shell.</p>
+<pre><code>from airflow import DAG
+from airflow.operators.bash import BashOperator
+from datetime import datetime
+
+DBT_DIR = "/opt/airflow/dbt/mon_projet"
+
+with DAG("dbt_pipeline", start_date=datetime(2026, 1, 1), schedule="@daily", catchup=False) as dag:
+    dbt_run = BashOperator(
+        task_id="dbt_run",
+        bash_command=f"cd {DBT_DIR} && dbt run --target prod",
+    )
+    dbt_test = BashOperator(
+        task_id="dbt_test",
+        bash_command=f"cd {DBT_DIR} && dbt test --target prod",
+    )
+    dbt_run >> dbt_test</code></pre>
+<p><strong>Limite :</strong> Airflow voit deux grosses tâches (« dbt_run », « dbt_test »), pas le détail modèle par modèle. Si un modèle échoue au milieu de 20, tout <code>dbt_run</code> est marqué en échec sans granularité.</p>
+</div>
+
+<h3 id="airflow-cosmos">3.3 Option B — Cosmos (astronomer-cosmos)</h3>
+<div class="card">
+<span class="tag ok">Le plus utilisé en production</span>
+<p>Cosmos est un package qui lit le graphe dbt et génère automatiquement une tâche Airflow par modèle dbt, avec les bonnes dépendances entre elles. Tu vois chaque modèle individuellement dans l'interface Airflow.</p>
+<pre><code>pip install astronomer-cosmos</code></pre>
+<pre><code>from cosmos import DbtDag, ProjectConfig, ProfileConfig
+from datetime import datetime
+
+project_config = ProjectConfig("/opt/airflow/dbt/mon_projet")
+profile_config = ProfileConfig(
+    profile_name="mon_projet",
+    target_name="prod",
+    profiles_yml_filepath="/opt/airflow/dbt/mon_projet/profiles.yml",
+)
+
+dbt_dag = DbtDag(
+    project_config=project_config,
+    profile_config=profile_config,
+    schedule="@daily",
+    start_date=datetime(2026, 1, 1),
+    dag_id="dbt_cosmos_pipeline",
+)</code></pre>
+<p><strong>Avantage :</strong> granularité fine (retry un seul modèle en échec, pas tout le projet), visualisation du vrai DAG dbt dans Airflow.</p>
+</div>
+
+<h3 id="airflow-cloud">3.4 Option C — Déclencher dbt Cloud depuis Airflow</h3>
+<div class="card">
+<span class="tag warn">Si tu utilises dbt Cloud</span>
+<p>Le package <code>apache-airflow-providers-dbt-cloud</code> fournit un opérateur qui déclenche un job dbt Cloud existant et attend sa fin, sans exécuter dbt directement sur les workers Airflow.</p>
+<pre><code>pip install apache-airflow-providers-dbt-cloud</code></pre>
+<pre><code>from airflow.providers.dbt.cloud.operators.dbt import DbtCloudRunJobOperator
+from airflow import DAG
+from datetime import datetime
+
+with DAG("dbt_cloud_trigger", start_date=datetime(2026, 1, 1), schedule="@daily") as dag:
+    trigger_job = DbtCloudRunJobOperator(
+        task_id="trigger_dbt_cloud_job",
+        dbt_cloud_conn_id="dbt_cloud_default",
+        job_id=123456,
+        wait_for_termination=True,
+    )</code></pre>
+<p><strong>Avantage :</strong> l'exécution reste gérée par dbt Cloud (logs, doc, historique), Airflow ne fait que déclencher et attendre.</p>
+</div>
+
+<h3 id="airflow-compare">3.5 Comparatif</h3>
+<table>
+<tr><th>Option</th><th>Granularité</th><th>Complexité de mise en place</th><th>Quand l'utiliser</th></tr>
+<tr><td>BashOperator</td><td>Faible (tout ou rien)</td><td>Très simple</td><td>Apprentissage, petit projet solo</td></tr>
+<tr><td>Cosmos</td><td>Fine (par modèle)</td><td>Moyenne</td><td>Projet dbt Core en production, équipe</td></tr>
+<tr><td>dbt Cloud + provider</td><td>Gérée par dbt Cloud</td><td>Faible si dbt Cloud déjà en place</td><td>Tu utilises déjà dbt Cloud pour le scheduling de base, Airflow orchestre juste l'ensemble plus large</td></tr>
+</table>
+<p><strong>Pour le guide projet (week-end 5) :</strong> commence par l'option BashOperator — c'est suffisant pour comprendre le principe d'orchestration sans complexité supplémentaire. Cosmos est une extension naturelle une fois à l'aise.</p>
+
+<h3 id="airflow-practices">3.6 Bonnes pratiques</h3>
+<ul>
+  <li>Toujours enchaîner <code>dbt run</code> puis <code>dbt test</code> (ou directement <code>dbt build</code>) — ne jamais laisser des modèles non testés partir en aval.</li>
+  <li>Configurer des <code>retries</code> sur les tâches Airflow pour absorber les erreurs transitoires (timeout réseau, entrepôt temporairement indisponible).</li>
+  <li>Séparer les cibles <code>dev</code> et <code>prod</code> dans <code>profiles.yml</code>, ne jamais faire tourner un DAG de développement sur le schéma de production.</li>
+  <li>Utiliser les sélecteurs dbt (<code>state:modified+</code>) pour ne reconstruire que ce qui a changé sur les DAGs déclenchés par un CI.</li>
+  <li>Faire remonter les échecs de tests dbt comme des échecs de tâche Airflow (le exit code non-zéro de <code>dbt test</code> suffit avec BashOperator).</li>
+</ul>
+
+<h2 id="cheatsheet">4. Aide-mémoire des commandes</h2>
+<pre><code>dbt debug                        # vérifie la connexion
+dbt deps                         # installe les packages
+dbt seed                         # charge les CSV de seeds/
+dbt run                          # construit les modèles
+dbt run --select stg_kiva_loans  # un seul modèle
+dbt run --select stg_kiva_loans+ # ce modèle + son aval
+dbt test                         # lance tous les tests
+dbt build                        # seed + run + test + snapshot, dans l'ordre
+dbt docs generate && dbt docs serve   # doc + DAG interactif
+dbt source freshness             # vérifie la fraîcheur des sources
+dbt compile                      # affiche le SQL compilé sans l'exécuter
+dbt clean                        # nettoie target/ et les packages</code></pre>
+
+<h2 id="ressources">5. Ressources officielles</h2>
+<ul>
+  <li>dbt Core — <a href="https://docs.getdbt.com" target="_blank">docs.getdbt.com</a></li>
+  <li>dbt Cloud — <a href="https://docs.getdbt.com/docs/cloud/about-cloud/dbt-cloud-features" target="_blank">docs.getdbt.com/docs/cloud</a></li>
+  <li>Jinja dans dbt — <a href="https://docs.getdbt.com/docs/build/jinja-macros" target="_blank">docs.getdbt.com/docs/build/jinja-macros</a></li>
+  <li>Modèles incrémentaux — <a href="https://docs.getdbt.com/docs/build/incremental-models" target="_blank">docs.getdbt.com/docs/build/incremental-models</a></li>
+  <li>Astronomer Cosmos — <a href="https://astronomer.github.io/astronomer-cosmos/" target="_blank">astronomer.github.io/astronomer-cosmos</a></li>
+  <li>Provider Airflow dbt Cloud — <a href="https://airflow.apache.org/docs/apache-airflow-providers-dbt-cloud/stable/index.html" target="_blank">airflow.apache.org providers-dbt-cloud</a></li>
+  <li>Airflow — <a href="https://airflow.apache.org/docs/" target="_blank">airflow.apache.org/docs</a></li>
+</ul>
+
+<footer>Tutoriel de référence — usage individuel.</footer>
+</main>
+</div>
+</body>
+</html>
