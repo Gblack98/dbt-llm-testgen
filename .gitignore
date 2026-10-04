@@ -26,5 +26,8 @@ logs/
 data/raw/*
 !data/raw/.gitkeep
 
+# local only, not shared
+docs/fiche-projet.pdf
+
 # os
 .DS_Store
