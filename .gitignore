@@ -28,6 +28,8 @@ data/raw/*
 
 # local only, not shared
 docs/fiche-projet.pdf
+docs/guide.html
+docs/tutoriel-dbt-cloud-airflow.html
 
 # os
 .DS_Store
