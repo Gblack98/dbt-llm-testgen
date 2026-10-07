@@ -1,15 +1,9 @@
-Welcome to your new dbt project!
+# dbt_llm_quality
 
-### Using the starter project
+This is the dbt project for [dbt-llm-testgen](https://github.com/Gblack98/dbt-llm-testgen). See the main README at the repo root for the full picture.
 
-Try running the following commands:
-- dbt run
-- dbt test
-
-
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+Quick commands, once the venv is active and `.env` is set up:
+- `dbt debug` : check the connection
+- `dbt run` : build the models
+- `dbt test` : run the tests
+- `dbt docs generate && dbt docs serve` : browse the model graph

@@ -33,6 +33,7 @@ Early stage. Folders are set up, pipeline is not built yet.
 - `dags` : Airflow DAGs
 - `scripts` : extraction, profiling, and LLM scripts
 - `docs` : project notes
+- `logs` : local run logs (not committed)
 
 ## Setup
 
